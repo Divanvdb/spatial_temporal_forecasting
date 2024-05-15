@@ -3,7 +3,7 @@
 from keras.models import Model
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, concatenate, Conv2DTranspose, BatchNormalization, Dropout, Lambda
 from keras.optimizers import Adam
-from keras.layers import Activation, MaxPool2D, Concatenate
+from keras.layers import Activation, MaxPool2D, Concatenate, add
 
 
 def conv_block(input, num_filters, kernel_size=3):
@@ -32,6 +32,40 @@ def decoder_block(input, skip_features, num_filters, kernel_size_=3):
     x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
     x = Concatenate()([x, skip_features])
     x = conv_block(x, num_filters, kernel_size_)
+    return x
+
+def RR_block(input, num_filters, kernel_size=3, stack_num=2, recur_num=2):
+    x0 = Conv2D(num_filters, kernel_size, padding="same")(input)
+    x = x0
+    
+    for i in range(stack_num):
+
+        x_res = Conv2D(num_filters, kernel_size, padding="same")(x)
+        x_res = BatchNormalization()(x_res)
+        x_res = Activation("relu")(x_res)
+            
+        for j in range(recur_num):
+            x_add = add([x_res, x])
+
+            x_res = Conv2D(num_filters, kernel_size, padding="same")(x_add)
+            x_res = BatchNormalization()(x_res)
+            x_res = Activation("relu")(x_res)
+            
+        x = x_res
+
+    x_out = add([x, x0])
+
+    return x_out
+
+def RR_encoder_block(input, num_filters, kernel_size_=3):
+    x = RR_block(input, num_filters, kernel_size_)
+    p = MaxPool2D((2, 2))(x)
+    return x, p 
+
+def RR_decoder_block(input, skip_features, num_filters, kernel_size_=3):
+    x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
+    x = Concatenate()([x, skip_features])
+    x = RR_block(x, num_filters, kernel_size_)
     return x
 
 
