@@ -1,3 +1,5 @@
 
 ERA5_Data/*
 Supporting Papers/*
+__pycache__/*
+models/*
