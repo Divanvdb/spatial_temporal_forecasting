@@ -34,6 +34,7 @@ def decoder_block(input, skip_features, num_filters, kernel_size_=3):
     x = conv_block(x, num_filters, kernel_size_)
     return x
 
+
 #Build Unet using the blocks
 def build_unet(input_shape, steps = 1):
     inputs = Input(input_shape)
