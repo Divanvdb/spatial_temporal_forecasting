@@ -6,12 +6,12 @@ from keras.optimizers import Adam
 from keras.layers import Activation, MaxPool2D, Concatenate
 
 
-def conv_block(input, num_filters):
-    x = Conv2D(num_filters, 3, padding="same")(input)
+def conv_block(input, num_filters, kernel_size=3):
+    x = Conv2D(num_filters, kernel_size, padding="same")(input)
     x = BatchNormalization()(x)   #Not in the original network. 
     x = Activation("relu")(x)
 
-    x = Conv2D(num_filters, 3, padding="same")(x)
+    x = Conv2D(num_filters, kernel_size, padding="same")(x)
     x = BatchNormalization()(x)  #Not in the original network
     x = Activation("relu")(x)
 
@@ -20,18 +20,18 @@ def conv_block(input, num_filters):
 #Encoder block: Conv block followed by maxpooling
 
 
-def encoder_block(input, num_filters):
-    x = conv_block(input, num_filters)
+def encoder_block(input, num_filters, kernel_size_=3):
+    x = conv_block(input, num_filters, kernel_size_)
     p = MaxPool2D((2, 2))(x)
     return x, p   
 
 #Decoder block
 #skip features gets input from encoder for concatenation
 
-def decoder_block(input, skip_features, num_filters):
+def decoder_block(input, skip_features, num_filters, kernel_size_=3):
     x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
     x = Concatenate()([x, skip_features])
-    x = conv_block(x, num_filters)
+    x = conv_block(x, num_filters, kernel_size_)
     return x
 
 #Build Unet using the blocks
