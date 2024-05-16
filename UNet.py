@@ -17,7 +17,6 @@ def conv_block(input, num_filters, kernel_size=3):
 
     return x
 
-#Encoder block: Conv block followed by maxpooling
 
 
 def encoder_block(input, num_filters, kernel_size_=3):
@@ -25,14 +24,13 @@ def encoder_block(input, num_filters, kernel_size_=3):
     p = MaxPool2D((2, 2))(x)
     return x, p   
 
-#Decoder block
-#skip features gets input from encoder for concatenation
 
 def decoder_block(input, skip_features, num_filters, kernel_size_=3):
     x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
     x = Concatenate()([x, skip_features])
     x = conv_block(x, num_filters, kernel_size_)
     return x
+
 
 def RR_block(input, num_filters, kernel_size=3, stack_num=2, recur_num=2):
     x0 = Conv2D(num_filters, kernel_size, padding="same")(input)
@@ -57,10 +55,12 @@ def RR_block(input, num_filters, kernel_size=3, stack_num=2, recur_num=2):
 
     return x_out
 
+
 def RR_encoder_block(input, num_filters, kernel_size_=3):
     x = RR_block(input, num_filters, kernel_size_)
     p = MaxPool2D((2, 2))(x)
     return x, p 
+
 
 def RR_decoder_block(input, skip_features, num_filters, kernel_size_=3):
     x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
@@ -69,7 +69,6 @@ def RR_decoder_block(input, skip_features, num_filters, kernel_size_=3):
     return x
 
 
-#Build Unet using the blocks
 def build_unet(input_shape, steps = 1):
     inputs = Input(input_shape)
 
@@ -89,3 +88,25 @@ def build_unet(input_shape, steps = 1):
 
     model = Model(inputs, outputs, name="U-Net")
     return model
+
+
+def build_RRnet(input_shape, steps = 1):
+    inputs = Input(input_shape)
+
+    s1, p1 = RR_encoder_block(inputs, 4)
+    s2, p2 = RR_encoder_block(p1, 8)
+    # s3, p3 = encoder_block(p2, 256)
+    # s4, p4 = encoder_block(p3, 512)
+
+    b1 = RR_block(p2, 16) #Bridge
+
+    # d1 = decoder_block(b1, s4, 512)
+    # d2 = decoder_block(d1, s3, 256)
+    d3 = RR_decoder_block(b1, s2, 8)
+    d4 = RR_decoder_block(d3, s1, 4)
+
+    outputs = Conv2D(steps, 1, padding="same", activation="sigmoid")(d4)  #Binary (can be multiclass)
+
+    model = Model(inputs, outputs, name="U-Net")
+    return model
+
